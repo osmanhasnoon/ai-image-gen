@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image Gen | Osman Bin Abubakar</title>
+    <style>
+        body { background-color: #121212; color: #ffffff; font-family: 'Courier New', Courier, monospace; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        h1 { color: #00ff41; text-shadow: 0 0 10px #00ff41; margin-bottom: 10px; }
+        .input-group { width: 80%; max-width: 500px; display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; }
+        input { padding: 15px; border: 2px solid #333; background: #000; color: #fff; font-size: 16px; border-radius: 5px; outline: none; }
+        input:focus { border-color: #00ff41; }
+        #api-token { border-color: #0072ff; }
+        button { padding: 15px 40px; background: #00ff41; color: #000; border: none; font-weight: bold; font-size: 18px; cursor: pointer; margin-top: 10px; }
+        #image-container { margin-top: 30px; width: 512px; height: 512px; border: 2px dashed #333; display: flex; justify-content: center; align-items: center; background: #0a0a0a; }
+        img { max-width: 100%; max-height: 100%; }
+        .loader { border: 4px solid #333; border-top: 4px solid #00ff41; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; display: none; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <h1>AI IMAGE GENERATOR</h1>
+    
+    <div class="input-group">
+        <input type="password" id="api-token" placeholder="Paste your Hugging Face Token here...">
+        <input type="text" id="prompt-input" placeholder="Describe an image...">
+    </div>
+
+    <button onclick="generateImage()">GENERATE</button>
+
+    <div id="image-container">
+        <div class="loader" id="loader"></div>
+        <div id="placeholder-text" style="color: #444;">Image will appear here</div>
+    </div>
+
+    <script>
+        async function generateImage() {
+            const input = document.getElementById("prompt-input").value;
+            const token = document.getElementById("api-token").value; 
+            const imageContainer = document.getElementById("image-container");
+            const loader = document.getElementById("loader");
+
+            if (!token) { alert("Please paste your Hugging Face Token first!"); return; }
+            if (!input) { alert("Please enter a description!"); return; }
+
+            loader.style.display = "block";
+            imageContainer.innerHTML = "";
+            imageContainer.appendChild(loader);
+
+            try {
+                const response = await fetch(
+                    "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
+                    {
+                        method: "POST",
+                        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+                        body: JSON.stringify({ inputs: input }),
+                    }
+                );
+                if (!response.ok) throw new Error("Failed.");
+                const blob = await response.blob();
+                const img = document.createElement("img");
+                img.src = URL.createObjectURL(blob);
+                loader.style.display = "none";
+                imageContainer.appendChild(img);
+            } catch (error) {
+                alert("Error: " + error.message);
+                loader.style.display = "none";
+            }
+        }
+    </script>
+</body>
+</html>
