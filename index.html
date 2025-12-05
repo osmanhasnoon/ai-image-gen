@@ -7,14 +7,13 @@
     <style>
         body { background-color: #121212; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
         
-        /* CONTROLS */
         .controls { background: #1e1e1e; padding: 20px; border-radius: 15px; width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; border: 1px solid #333; }
         input[type="text"], input[type="password"] { padding: 10px; background: #000; border: 1px solid #444; color: white; border-radius: 5px; }
         button { padding: 12px; background: #00ff41; border: none; font-weight: bold; cursor: pointer; border-radius: 5px; }
         button:hover { background: #00cc33; }
         .file-upload { border: 2px dashed #444; padding: 20px; text-align: center; cursor: pointer; }
-        
-        /* CANVAS STACK - The Eraser */
+
+        /* CANVAS CONTAINER */
         .canvas-container { 
             position: relative; 
             width: 512px; 
@@ -22,31 +21,28 @@
             background: #000; 
             border: 2px solid #555;
             display: none; 
+            overflow: hidden;
         }
         
         #source-image {
-            width: 100%;
-            height: 100%;
+            width: 512px;
+            height: 512px;
             position: absolute;
-            top: 0;
-            left: 0;
-            object-fit: cover; 
-            pointer-events: none; 
+            top: 0; left: 0;
+            object-fit: cover;
         }
 
         #drawing-canvas {
-            width: 100%;
-            height: 100%;
+            width: 512px;
+            height: 512px;
             position: absolute;
-            top: 0;
-            left: 0;
+            top: 0; left: 0;
             cursor: crosshair;
-            opacity: 0.7; 
+            opacity: 0.6;
         }
 
-        /* RESULT AREA */
         #result-container { margin-top: 20px; text-align: center; }
-        #result-img { max-width: 512px; border: 2px solid #00ff41; display: none; }
+        #result-img { width: 512px; height: 512px; border: 2px solid #00ff41; display: none; }
         .loader { display: none; color: #00ff41; animation: pulse 1s infinite; }
         @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } }
     </style>
@@ -57,47 +53,51 @@
 
     <div class="controls">
         <input type="password" id="api-token" placeholder="Paste Hugging Face Token (hf_...)" />
-        
-        <input type="file" id="file-input" accept="image/*" class="file-upload" onchange="loadImage(event)" />
-        
-        <input type="text" id="prompt-input" placeholder="What should replace the masked area? (e.g. 'Red sunglasses')" />
+        <input type="file" id="file-input" accept="image/*" class="file-upload" onchange="handleUpload(event)" />
+        <input type="text" id="prompt-input" placeholder="What should replace the red area? (e.g. 'Red sunglasses')" />
         
         <button onclick="generateInpaint()">MAGIC REPLACE</button>
         <button onclick="clearMask()" style="background: #444; color: white;">Clear Drawing</button>
     </div>
 
     <div class="canvas-container" id="canvas-wrapper">
-        <img id="source-image" src="" alt="Source">
+        <canvas id="bg-canvas" width="512" height="512" style="position: absolute; top:0; left:0;"></canvas>
         <canvas id="drawing-canvas" width="512" height="512"></canvas>
     </div>
 
     <div id="result-container">
-        <h3 class="loader" id="loader">✨ AI is Painting... (Takes ~20s)</h3>
+        <h3 class="loader" id="loader">✨ Processing... (Give it 30 seconds)</h3>
         <img id="result-img" alt="Result" />
     </div>
 
     <script>
-        let originalImageBase64 = null;
-        const canvas = document.getElementById("drawing-canvas");
-        const ctx = canvas.getContext("2d");
+        const drawCanvas = document.getElementById("drawing-canvas");
+        const ctx = drawCanvas.getContext("2d");
+        const bgCanvas = document.getElementById("bg-canvas");
+        const bgCtx = bgCanvas.getContext("2d");
+        
         let isDrawing = false;
 
-        // 1. SETUP DRAWING TOOLS
-        ctx.strokeStyle = "red"; 
-        ctx.lineWidth = 40;      
+        // DRWING TOOLS
+        ctx.strokeStyle = "#ff0000"; // Red Paint
+        ctx.lineWidth = 40;
         ctx.lineCap = "round";
+        ctx.lineJoin = "round";
 
-        // Mouse Events
-        canvas.addEventListener("mousedown", (e) => { isDrawing = true; draw(e); });
-        canvas.addEventListener("mousemove", draw);
-        canvas.addEventListener("mouseup", () => isDrawing = false);
-        canvas.addEventListener("mouseout", () => isDrawing = false);
+        drawCanvas.addEventListener("mousedown", (e) => { isDrawing = true; draw(e); });
+        drawCanvas.addEventListener("mousemove", draw);
+        drawCanvas.addEventListener("mouseup", () => isDrawing = false);
+        drawCanvas.addEventListener("mouseout", () => isDrawing = false);
 
         function draw(e) {
             if (!isDrawing) return;
-            const rect = canvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+            const rect = drawCanvas.getBoundingClientRect();
+
+            const scaleX = drawCanvas.width / rect.width;
+            const scaleY = drawCanvas.height / rect.height;
+            
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
             
             ctx.lineTo(x, y);
             ctx.stroke();
@@ -105,66 +105,72 @@
             ctx.moveTo(x, y);
         }
 
-        // 2. LOAD IMAGE
-        function loadImage(event) {
+        // UPLOAD & RESIZE LOGIC
+        function handleUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = document.getElementById("source-image");
-                img.src = e.target.result;
-                originalImageBase64 = e.target.result; 
+            const img = new Image();
+            img.onload = function() {
+                // Auto resze the image
+                bgCtx.clearRect(0,0, 512, 512);
+                bgCtx.drawImage(img, 0, 0, 512, 512);
                 
                 document.getElementById("canvas-wrapper").style.display = "block";
-                clearMask(); // Reset canvas
+                clearMask();
             }
-            reader.readAsDataURL(file);
+            img.src = URL.createObjectURL(file);
         }
 
         function clearMask() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, 512, 512);
             ctx.beginPath();
         }
 
-        // 3. GENERATE (The Complex Logic)
+        // GENERATE
         async function generateInpaint() {
             const token = document.getElementById("api-token").value.trim();
             const prompt = document.getElementById("prompt-input").value;
             const loader = document.getElementById("loader");
             const resultImg = document.getElementById("result-img");
 
-            if (!token || !originalImageBase64 || !prompt) {
-                alert("Please check Token, Image, and Prompt!");
-                return;
-            }
+            if (!token || !prompt) { alert("Missing Token or Prompt!"); return; }
 
             loader.style.display = "block";
             resultImg.style.display = "none";
 
-            const tempCanvas = document.createElement("canvas");
-            tempCanvas.width = 512;
-            tempCanvas.height = 512;
-            const tempCtx = tempCanvas.getContext("2d");
-            
-            // Fill background Black 
-            tempCtx.fillStyle = "black";
-            tempCtx.fillRect(0, 0, 512, 512);
-            
-            // Draw the user's strokes as White 
-            tempCtx.drawImage(canvas, 0, 0); 
-            
-            // Turn Red strokes into White (Composite magic)
-            tempCtx.globalCompositeOperation = "source-in";
-            tempCtx.fillStyle = "white";
-            tempCtx.fillRect(0, 0, 512, 512);
-            
-            const maskBase64 = tempCanvas.toDataURL().split(",")[1]; // Remove header
-            const cleanOriginal = originalImageBase64.split(",")[1];  // Remove header
-
             try {
+                // Resized
+                const sourceBase64 = bgCanvas.toDataURL("image/png").split(",")[1];
+
+                const maskData = ctx.getImageData(0, 0, 512, 512);
+                const targetMask = ctx.createImageData(512, 512);
+                
+                for (let i = 0; i < maskData.data.length; i += 4) {
+                    // Check Alpha (transparency)
+                    if (maskData.data[i+3] > 0) {
+ 
+                        targetMask.data[i] = 255;
+                        targetMask.data[i+1] = 255;
+                        targetMask.data[i+2] = 255;
+                        targetMask.data[i+3] = 255; // Full opacity
+                    } else {
+                        // Makes it black if empty
+                        targetMask.data[i] = 0;
+                        targetMask.data[i+1] = 0;
+                        targetMask.data[i+2] = 0;
+                        targetMask.data[i+3] = 255; // Full opacity
+                    }
+                }
+            
+                const tempCanvas = document.createElement("canvas");
+                tempCanvas.width = 512; tempCanvas.height = 512;
+                tempCanvas.getContext("2d").putImageData(targetMask, 0, 0);
+                const maskBase64 = tempCanvas.toDataURL("image/png").split(",")[1];
+
+                // 3. Send to API (Using the reliable v1.5 Inpainting model)
                 const response = await fetch(
-                    "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2-inpainting",
+                    "https://api-inference.huggingface.co/models/runwayml/stable-diffusion-inpainting",
                     {
                         method: "POST",
                         headers: { 
@@ -173,19 +179,23 @@
                         },
                         body: JSON.stringify({
                             inputs: prompt,
-                            image: cleanOriginal,
+                            image: sourceBase64,
                             mask_image: maskBase64
                         }),
                     }
                 );
 
-                if (!response.ok) throw new Error(await response.text());
+                if (!response.ok) {
+                    const err = await response.text();
+                    throw new Error(err);
+                }
 
                 const blob = await response.blob();
                 resultImg.src = URL.createObjectURL(blob);
                 resultImg.style.display = "block";
 
             } catch (err) {
+                console.error(err);
                 alert("Error: " + err.message);
             } finally {
                 loader.style.display = "none";
