@@ -5,18 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Studio Pro | Osman Bin Abubakar</title>
     <style>
-      :root { --primary: #00ff41; --bg: #0a0a0a; --panel: #161616; }
-
-        body {
-            background-color: var(--bg);
-            color: #fff;
-            font-family: 'Segio UI', sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
+        /* MODERN DARK THEME */
+        :root { --primary: #00ff41; --bg: #0a0a0a; --panel: #161616; }
+        
+        body { 
+            background-color: var(--bg); 
+            color: #fff; 
+            font-family: 'Segoe UI', sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            padding: 20px; 
         }
 
         h1 {
@@ -30,7 +31,7 @@
 
         p.subtitle { color: #666; margin-bottom: 30px; }
 
-        /* Control Panel */
+        /* CONTROL PANEL */
         .controls {
             background: var(--panel);
             border: 1px solid #333;
@@ -43,9 +44,24 @@
             gap: 15px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.5);
         }
+
+        .input-group { position: relative; }
+        
+        input {
+            width: 100%;
+            padding: 15px;
+            box-sizing: border-box; /* Fixes padding issues */
+            background: #000;
+            border: 1px solid #333;
+            color: #fff;
+            border-radius: 10px;
+            font-size: 16px;
+            outline: none;
+            transition: border 0.3s;
+        }
         input:focus { border-color: var(--primary); }
 
-        .brn-row { display: flex; gap: 10px; }
+        .btn-row { display: flex; gap: 10px; }
 
         button {
             padding: 15px;
@@ -54,19 +70,19 @@
             font-weight: bold;
             cursor: pointer;
             transition: all 0.2s;
-            flex: 1;
+            flex: 1; /* Makes buttons equal width */
         }
 
         .btn-generate { background: var(--primary); color: #000; font-size: 1.1rem; }
         .btn-generate:hover { transform: scale(1.02); box-shadow: 0 0 15px rgba(0, 255, 65, 0.3); }
 
-        .btn-magic { background: #333; color: #fff; display: flex; align-items: center: justify-content: center; gap: 50px; }
-        .btn-magic: hover { background: #444; }
+        .btn-magic { background: #333; color: #fff; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .btn-magic:hover { background: #444; }
 
-        /* Gallery Grid */
+        /* GALLERY GRID */
         .gallery {
-            display: grid:
-            grid template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
             width: 100%;
             max-width: 1200px;
@@ -82,7 +98,7 @@
         }
 
         .card img { width: 100%; height: auto; display: block; }
-
+        
         .card-actions {
             padding: 15px;
             display: flex;
@@ -91,7 +107,7 @@
         }
 
         .download-link {
-            color: #fff
+            color: #fff;
             text-decoration: none;
             font-size: 0.9rem;
             background: #222;
@@ -101,45 +117,46 @@
         .download-link:hover { background: #333; }
 
         .loader { text-align: center; color: #888; margin-top: 20px; display: none; }
-
+        
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <h1>AI Studio Pro</h1>
-    <p class="subtitle">Poewred by FLUX.1 & Hugging Face</p>
+    <h1>AI STUDIO PRO</h1>
+    <p class="subtitle">Powered by FLUX.1 & Hugging Face</p>
 
     <div class="controls">
         <input type="password" id="api-token" placeholder="Paste Hugging Face Token (hf_...)" />
-
-        <div class-"input-group">
+        
+        <div class="input-group">
             <input type="text" id="prompt-input" placeholder="Describe your imagination..." />
         </div>
 
         <div class="btn-row">
             <button class="btn-magic" onclick="enhancePrompt()">✨ Magic Prompt</button>
-            <button class="btn-generate" onclick="generateImage()">Generate</button>
+            <button class="btn-generate" onclick="generateImage()">GENERATE</button>
         </div>
-
+        
         <div id="status" class="loader">Generating... This takes about 10-20s...</div>
     </div>
 
     <div class="gallery" id="gallery"></div>
 
     <script>
-        // Prompt Logic
+        // PROMPT ENHANCER LOGIC
         const styles = [
-            "cyberpunk city, neor lights, 8k resolution, cinematic lighting",
+            "cyberpunk city, neon lights, 8k resolution, cinematic lighting",
             "oil painting style, van gogh, vibrant colors, artistic",
             "hyperrealistic photo, highly detailed, national geographic",
             "3d render, unreal engine 5, octane render, futuristic",
-            "vintage polaroid, nostalgia, grain, soft lighting",
-            ];
+            "vintage polaroid, nostalgia, grain, soft lighting"
+        ];
+
         function enhancePrompt() {
             const input = document.getElementById("prompt-input");
-            const randomStyle = style[Math.floor(Math.random() * styles.length)];
-
+            const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+            
             if(input.value.trim() === "") {
                 input.value = "A cute astronaut cat, " + randomStyle;
             } else {
@@ -147,12 +164,12 @@
             }
         }
 
-        // Gen Logic
-        async funtion generateImage() {
+        // GENERATION LOGIC
+        async function generateImage() {
             const token = document.getElementById("api-token").value.trim();
             const prompt = document.getElementById("prompt-input").value;
             const status = document.getElementById("status");
-            const gallery = document.getElementId("gallery");
+            const gallery = document.getElementById("gallery");
 
             if (!token) { alert("Please paste your Token!"); return; }
             if (!prompt) { alert("Please enter a prompt!"); return; }
@@ -160,41 +177,43 @@
             status.style.display = "block";
 
             try {
-                // The Flux Model
+                // Using the reliable FLUX model
                 const response = await fetch(
                     "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
                     {
                         method: "POST",
-                        headers: {
-                            "Authorization": `Bearer ${token}`,
-                            "Content-Type": "application/json"
-                        }
-                            body: JSON.stringify({ inputs: prompt }),
+                        headers: { 
+                            "Authorization": `Bearer ${token}`, 
+                            "Content-Type": "application/json" 
+                        },
+                        body: JSON.stringify({ inputs: prompt }),
                     }
-            );
-            if (!response.ok) throw new Error(await response.text());
+                );
 
-            const blob = await response.blob();
-            const imgUrl = URL.createObjectURL(blob);
+                if (!response.ok) throw new Error(await response.text());
 
-            //Gallery Cards HTML
-            const card = document.createElement("div");
-            card.className = "card";
-            card.innerHTML = `
-            <img src="${imgUrl}" alt="AI Art">
-            <div class="card-actions">
-            <span style="font-size:0.8rem; color #888,">${prompt.substring(0, 20)}...</span>
-            <a href="${imgUrl}" download="ai-art-${Date.now()}.png' class="download-link">Download ⬇</a>
-            </div>
-            `;
+                const blob = await response.blob();
+                const imgUrl = URL.createObjectURL(blob);
+                
+                // Create the Gallery Card HTML
+                const card = document.createElement("div");
+                card.className = "card";
+                card.innerHTML = `
+                    <img src="${imgUrl}" alt="AI Art">
+                    <div class="card-actions">
+                        <span style="font-size:0.8rem; color:#888;">${prompt.substring(0, 20)}...</span>
+                        <a href="${imgUrl}" download="ai-art-${Date.now()}.png" class="download-link">Download ⬇</a>
+                    </div>
+                `;
 
-            gallery.insertBefore(card, gallery.firstChild);
+                // Add to top of gallery
+                gallery.insertBefore(card, gallery.firstChild);
 
-        } catch (err) {
-            alert("Error: " + err.message);
-        } finally {
-            status.style.display = "none";
-        }
+            } catch (err) {
+                alert("Error: " + err.message);
+            } finally {
+                status.style.display = "none";
+            }
         }
     </script>
 </body>
